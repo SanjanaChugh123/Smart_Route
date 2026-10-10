@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SmartRoute – group-aware journey planner (prototype)</title>
+  <meta name="description" content="SmartRoute is a hackathon prototype journey planner for Indian cities that counts children's fares and adapts routes to your group.">
+  <meta name="theme-color" content="#1a56db">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===== SKIP LINK ===== -->
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <!-- ===== STICKY HEADER ===== -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#main" id="brandLink" aria-label="SmartRoute home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="28" height="28" focusable="false">
+            <circle cx="7" cy="25" r="3.5" fill="#fff"/>
+            <circle cx="25" cy="7" r="3.5" fill="#7ee0d5"/>
+            <path d="M7 25 C7 14 25 18 25 7" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="1 5" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="brand-name">SmartRoute</span>
+      </a>
+      <nav id="mainNav" class="main-nav" aria-label="Main" hidden>
+        <button type="button" class="nav-btn" data-nav="home">Home</button>
+        <button type="button" class="nav-btn" data-nav="plan">Plan a trip</button>
+        <button type="button" class="nav-btn" data-nav="account">Account</button>
+        <button type="button" class="nav-btn nav-btn-quiet" id="btnSignOut">Sign out</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== LIVE STATUS REGION (screen-reader announcements + visible toast) ===== -->
+  <div id="status" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <main id="main" tabindex="-1">
+
+    <!-- ============================================================
+         SCREEN 1: SIGN IN / CREATE ACCOUNT (demo only)
+         ============================================================ -->
+    <section id="screen-auth" class="screen" aria-labelledby="authTitle">
+      <div class="auth-layout">
+        <div class="auth-intro">
+          <h1 id="authTitle" tabindex="-1">SmartRoute</h1>
+          <p class="lead">Plan bus and metro journeys for the whole group. Children's fares are counted by age, and routes adapt to your budget, priorities and comfort.</p>
+          <ul class="tick-list">
+            <li>Seven Indian cities with real stop names</li>
+            <li>Cheapest, fastest and most comfortable routes side by side</li>
+            <li>A map for each route showing how far you walk and ride</li>
+          </ul>
+          <p>
+            <span class="tag tag-sample">Sample data</span>
+            <span class="tag tag-est">Estimated</span>
+          </p>
+        </div>
+
+        <div class="card auth-card">
+          <div class="tabs" role="tablist" aria-label="Account options">
+            <button type="button" role="tab" class="tab" id="tab-signin" aria-selected="true" aria-controls="panel-signin">Sign in</button>
+            <button type="button" role="tab" class="tab" id="tab-signup" aria-selected="false" aria-controls="panel-signup" tabindex="-1">Create account</button>
+          </div>
+
+          <p class="notice notice-info" id="authNote">
+            This is a demo sign-in, not a real cloud account. Your password is never stored or checked, and everything you save stays in this browser only.
+          </p>
+
+          <!-- Sign in -->
+          <div role="tabpanel" id="panel-signin" aria-labelledby="tab-signin">
+            <form id="formSignin" novalidate>
+              <div class="error-box" id="signinErrors" role="alert" tabindex="-1" hidden></div>
+              <div class="field">
+                <label for="signinEmail">Email</label>
+                <input type="email" id="signinEmail" name="email" autocomplete="email" required>
+              </div>
+              <div class="field">
+                <label for="signinPassword">Demo password</label>
+                <input type="password" id="signinPassword" name="password" autocomplete="off" minlength="6" required aria-describedby="signinPwHint">
+                <p class="hint" id="signinPwHint">At least 6 characters. Any password works in this demo.</p>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+            </form>
+          </div>
+
+          <!-- Create account -->
+          <div role="tabpanel" id="panel-signup" aria-labelledby="tab-signup" hidden>
+            <form id="formSignup" novalidate>
+              <div class="error-box" id="signupErrors" role="alert" tabindex="-1" hidden></div>
+              <div class="field">
+                <label for="signupName">Name</label>
+                <input type="text" id="signupName" name="name" autocomplete="name" maxlength="60" required>
+              </div>
+              <div class="field">
+                <label for="signupEmail">Email</label>
+                <input type="email" id="signupEmail" name="email" autocomplete="email" required>
+              </div>
+              <div class="field">
+                <label for="signupPassword">Demo password</label>
+                <input type="password" id="signupPassword" name="password" autocomplete="off" minlength="6" required aria-describedby="signupPwHint">
+                <p class="hint" id="signupPwHint">At least 6 characters. Don't reuse a real password.</p>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">Create account</button>
+            </form>
+          </div>
+
+          <div class="divider" role="separator"><span>or</span></div>
+          <button type="button" class="btn btn-accent btn-block" id="btnDemo">Continue with demo account</button>
+          <p class="hint center">Creates a demo user with sample saved places and fare history.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SCREEN 2: HOME
+         ============================================================ -->
+    <section id="screen-home" class="screen" aria-labelledby="homeTitle" hidden>
+      <div class="page-head">
+        <div>
+          <h1 id="homeTitle" tabindex="-1">Home</h1>
+          <p class="lead" id="homeGreeting"></p>
+        </div>
+        <button type="button" class="btn btn-primary btn-large" id="btnPlanFromHome">Plan a trip</button>
+      </div>
+
+      <div class="card-grid">
+        <!-- Saved places -->
+        <section class="card" aria-labelledby="placesTitle">
+          <h2 id="placesTitle">Saved places</h2>
+          <ul class="item-list" id="placesList"></ul>
+          <form id="formPlace" class="inline-form" novalidate>
+            <h3 class="h-small">Add a place</h3>
+            <div class="error-box" id="placeErrors" role="alert" tabindex="-1" hidden></div>
+            <div class="field">
+              <label for="placeLabel">Label (for example Home or Office)</label>
+              <input type="text" id="placeLabel" maxlength="40" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="placeCity">City</label>
+              <select id="placeCity"></select>
+            </div>
+            <div class="field">
+              <label for="placeStop">Stop</label>
+              <select id="placeStop"></select>
+            </div>
+            <button type="submit" class="btn btn-secondary">Save place</button>
+          </form>
+        </section>
+
+        <!-- Saved trips -->
+        <section class="card" aria-labelledby="tripsTitle">
+          <h2 id="tripsTitle">Saved trips</h2>
+          <ul class="item-list" id="tripsList"></ul>
+        </section>
+
+        <!-- Recent searches -->
+        <section class="card" aria-labelledby="recentsTitle">
+          <h2 id="recentsTitle">Recent searches</h2>
+          <ul class="item-list" id="recentsList"></ul>
+        </section>
+
+        <!-- My preferences -->
+        <section class="card" aria-labelledby="prefsTitle">
+          <h2 id="prefsTitle">My preferences</h2>
+          <div id="prefsSummary"></div>
+          <button type="button" class="btn btn-secondary" id="btnEditPrefs">Edit on the trip form</button>
+        </section>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SCREEN 3: PLAN A TRIP
+         ============================================================ -->
+    <section id="screen-plan" class="screen" aria-labelledby="planTitle" hidden>
+      <div class="page-head">
+        <div>
+          <h1 id="planTitle" tabindex="-1">Plan a trip</h1>
+          <p class="lead">Choose a city, where you're starting and where you're going.</p>
+        </div>
+      </div>
+
+      <form id="formPlan" class="card form-card" novalidate>
+        <div class="error-box" id="planErrors" role="alert" tabindex="-1" hidden></div>
+
+        <fieldset class="group">
+          <legend>Where</legend>
+          <div class="field">
+            <label for="city">City</label>
+            <select id="city" name="city"></select>
+          </div>
+
+          <div class="field">
+            <label for="fromInput">Starting point</label>
+            <input type="text" id="fromInput" name="from" list="stopList" autocomplete="off" required aria-describedby="fromHint">
+            <p class="hint" id="fromHint">Start typing, then pick a stop from the list.</p>
+          </div>
+
+          <div class="field">
+            <button type="button" class="btn btn-secondary" id="btnGps">Use my location</button>
+            <p class="hint">Your position is used once to find the nearest stop and is never stored.</p>
+            <div id="gpsStatus" class="gps-status" role="status" aria-live="polite"></div>
+          </div>
+
+          <div class="field">
+            <label for="toInput">Destination</label>
+            <input type="text" id="toInput" name="to" list="stopList" autocomplete="off" required>
+          </div>
+          <datalist id="stopList"></datalist>
+        </fieldset>
+
+        <fieldset class="group">
+          <legend>Who and when</legend>
+          <div class="field">
+            <label for="when">Date and time (optional)</label>
+            <input type="datetime-local" id="when" name="when" aria-describedby="whenHint">
+            <p class="hint" id="whenHint">Leave blank to plan for now. Time changes the sample crowd levels.</p>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="travellers">Total travellers (1–10)</label>
+              <input type="number" id="travellers" name="travellers" min="1" max="10" step="1" value="1" inputmode="numeric" required>
+            </div>
+            <div class="field">
+              <label for="children">Of them, children (under 18)</label>
+              <input type="number" id="children" name="children" min="0" max="9" step="1" value="0" inputmode="numeric">
+            </div>
+          </div>
+
+          <fieldset class="group sub-group" id="childAgesWrap" hidden>
+            <legend>Age of each child</legend>
+            <div id="childAges" class="field-row"></div>
+          </fieldset>
+
+          <p class="rules" id="fareRules">
+            Fare rules: under 5 travel free, ages 5–12 pay half fare (rounded up to the next rupee), and 13 and over pay full fare.
+          </p>
+        </fieldset>
+
+        <fieldset class="group">
+          <legend>Budget and priority</legend>
+          <div class="field">
+            <label for="budget">Maximum budget for the group in ₹ (optional)</label>
+            <input type="number" id="budget" name="budget" min="1" max="100000" step="1" inputmode="numeric">
+          </div>
+
+          <fieldset class="radio-group">
+            <legend>Priority</legend>
+            <label class="choice"><input type="radio" name="priority" value="cheapest"> <span>Cheapest</span></label>
+            <label class="choice"><input type="radio" name="priority" value="fastest" checked> <span>Fastest</span></label>
+            <label class="choice"><input type="radio" name="priority" value="comfortable"> <span>Most comfortable</span></label>
+          </fieldset>
+        </fieldset>
+
+        <details class="more-prefs" id="morePrefs">
+          <summary>More preferences</summary>
+          <div class="checks">
+            <label class="choice"><input type="checkbox" id="pref-lessWalking"> <span>Less walking</span></label>
+            <label class="choice"><input type="checkbox" id="pref-fewerTransfers"> <span>Fewer transfers</span></label>
+            <label class="choice"><input type="checkbox" id="pref-stepFree"> <span>Step-free access</span></label>
+            <label class="choice"><input type="checkbox" id="pref-childFriendly"> <span>Child-friendly</span></label>
+            <label class="choice"><input type="checkbox" id="pref-lateNight"> <span>Minimise late-night walking</span></label>
+          </div>
+          <p class="hint">Late-night means after 21:00 or before 05:00. This only changes how routes are ranked. It does not make any route safe.</p>
+        </details>
+
+        <div class="prefs-actions">
+          <label class="choice"><input type="checkbox" id="savePrefs"> <span>Save these preferences to my account</span></label>
+          <button type="button" class="btn btn-secondary" id="btnUsePrefs">Use my saved preferences</button>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary btn-large">Find routes</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ============================================================
+         SCREEN 4: RESULTS (route cards + map)
+         ============================================================ -->
+    <section id="screen-results" class="screen" aria-labelledby="resultsTitle" hidden>
+      <div class="page-head">
+        <div>
+          <h1 id="resultsTitle" tabindex="-1">Your routes</h1>
+          <p class="lead" id="resultsSummary"></p>
+        </div>
+        <button type="button" class="btn btn-secondary" id="btnBackToPlan">Change trip details</button>
+      </div>
+
+      <div id="resultNotices"></div>
+      <div id="routeCards" class="route-grid"></div>
+
+      <!-- Map and distance breakdown for the selected route -->
+      <section class="card map-card" id="mapSection" aria-labelledby="mapTitle" hidden>
+        <h2 id="mapTitle">Map and distance by mode</h2>
+        <p class="hint">Choose a trip to see how far you walk and ride on it.</p>
+        <div class="map-tabs" id="mapTabs" role="group" aria-label="Choose a trip to show on the map"></div>
+
+        <div id="distanceSummary" class="distance-summary"></div>
+
+        <div class="map-frame">
+          <div id="gmap" class="gmap" hidden></div>
+          <div id="fallbackMap" class="fallback-map"></div>
+        </div>
+        <div id="mapStatus" class="map-status" role="status" aria-live="polite"></div>
+        <p class="hint" id="mapNote"></p>
+
+        <ol id="legDistances" class="leg-distances"></ol>
+
+        <p><a id="openGoogleMaps" class="btn btn-secondary" href="#" target="_blank" rel="noopener noreferrer">Open this trip in Google Maps</a></p>
+
+        <details class="more-prefs" id="mapsKeyBox">
+          <summary>Connect Google Maps on this page</summary>
+          <form id="formMapsKey" novalidate>
+            <p class="hint">Paste a Google Maps JavaScript API key to replace the simple schematic map with Google Maps. Turn on the Directions API as well if you want Google's own walking and road distances. The key is kept in this browser only. Restrict it to your site's address in Google Cloud Console.</p>
+            <div class="field">
+              <label for="mapsKey">Google Maps API key</label>
+              <input type="text" id="mapsKey" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="btn-row">
+              <button type="submit" class="btn btn-primary">Save key and load map</button>
+              <button type="button" class="btn btn-secondary" id="btnClearMapsKey">Remove key</button>
+            </div>
+          </form>
+        </details>
+      </section>
+    </section>
+
+    <!-- ============================================================
+         SCREEN 5: ACCOUNT
+         ============================================================ -->
+    <section id="screen-account" class="screen" aria-labelledby="accountTitle" hidden>
+      <div class="page-head">
+        <div>
+          <h1 id="accountTitle" tabindex="-1">Account</h1>
+          <p class="lead">A demo profile stored only in this browser.</p>
+        </div>
+      </div>
+
+      <div class="card-grid">
+        <section class="card" aria-labelledby="profileTitle">
+          <h2 id="profileTitle">Profile</h2>
+          <dl class="kv" id="profileList"></dl>
+          <p class="notice notice-info">This is not a real cloud account. No password is stored.</p>
+          <button type="button" class="btn btn-danger" id="btnDeleteData">Delete my demo data</button>
+        </section>
+
+        <section class="card card-wide" aria-labelledby="fareTitle">
+          <h2 id="fareTitle">Fare history
+            <span class="tag tag-sample">Sample data</span>
+            <span class="tag tag-est">Simulated</span>
+          </h2>
+          <div class="table-wrap" tabindex="0" role="region" aria-labelledby="fareTitle">
+            <table class="data-table" id="fareTable">
+              <caption class="sr-only">Simulated fare history</caption>
+              <thead>
+                <tr><th scope="col">Date</th><th scope="col">City</th><th scope="col">Trip</th><th scope="col">Modes</th><th scope="col" class="num">Fare</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="site-footer">
+    <p>SmartRoute is a hackathon prototype. Stop names are real places in selected Indian cities. Routes, fares, weather and crowd levels are sample or estimated data.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
